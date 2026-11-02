@@ -1,0 +1,32 @@
+//@version=6
+indicator(title="ADX (20 seviye renkli)", shorttitle="ADX", format=format.price, precision=4)
+
+TT_ADX_LEN = "The time period to be used in calculating the ADX which has a smoothing component."
+TT_DI_LEN  = "The time period to be used in calculating the DI (Directional Indicator)."
+
+lensig = input.int(14, "ADX Smoothing", minval = 1, tooltip = TT_ADX_LEN)
+len =    input.int(14, "DI Length",     minval = 1, tooltip = TT_DI_LEN)
+
+// Seviye ve renk ayarları (gösterge ayarları > Inputs)
+seviye    = input.float(20, "Seviye", minval = 0, maxval = 100)
+renkAlt   = input.color(color.red,                 "ADX seviye altı",   group = "Renkler")
+renkUst   = input.color(color.blue,                "ADX seviye üstü",   group = "Renkler")
+renkArka  = input.color(color.new(color.purple, 80), "Riskli bölge (seviye altı)", group = "Renkler")
+renkSinir = input.color(color.black,               "Bölge sınır çizgileri",   group = "Renkler")
+
+up = ta.change(high)
+down = -ta.change(low)
+plusDM = na(up) ? na : (up > down and up > 0 ? up : 0)
+minusDM = na(down) ? na : (down > up and down > 0 ? down : 0)
+trur = ta.rma(ta.tr, len)
+plus = fixnan(100 * ta.rma(plusDM, len) / trur)
+minus = fixnan(100 * ta.rma(minusDM, len) / trur)
+sum = plus + minus
+adx = 100 * ta.rma(math.abs(plus - minus) / (sum == 0 ? 1 : sum), lensig)
+
+// Riskli bölge: 0 ile seviye arası, iki yöne sonsuz uzanan kutu.
+// Kutunun üst ve alt kenarı 0 ve seviye sınır çizgileri olur.
+var box bolge = box.new(bar_index, seviye, bar_index + 1, 0, border_color = renkSinir, border_width = 1, bgcolor = renkArka, extend = extend.both)
+
+altta = adx < seviye
+plot(adx, color = altta ? renkAlt : renkUst, title = "ADX", linewidth = 2)
